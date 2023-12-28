@@ -1,0 +1,616 @@
+ #CODE-SEGMENT::
+
+
+# NOTE : IN THIS PROGRAM, THE EMPTY TILE IS DENOTED BY '-'.
+
+from queue import Queue
+queue=Queue()
+import random
+
+
+
+def goalstate(str1):#Checking Whether the given string is a goal state or not.
+    
+    cnt2=str1.count('R') #calculating the letter count of 'R'.
+    
+
+    str2=str1[:(len(str1)//2)+1] #slicing the string from 0 to middle
+    
+    
+    if(str1[len(initial)-1]=='R' and str2.count('G')==cnt2  and (str2.count('-')==1 or str2[len(str2)-1]=='R')): #checking whether the last letter is 'R' and all 'G's' are present in left and if atleast one empty space or one red tile should be present at the middle position.
+        return True
+    else:
+        return False
+    
+def generatestates(initial):#Generates the successor nodes of the string. Ex: GRRG- => 'GR-GR','GRR-G'
+    
+    
+    str1=initial #EX : GR-RG
+    cnt=initial.count('R')
+    
+    l1=[]
+    idx=initial.index('-') #calculating the position of empty tile.
+
+    
+    for i in range(idx-cnt,idx+cnt+1):#determining the possible replacement with the empty tile.
+        if(i<len(initial)  and i>-1):     
+            
+            str1=str1[:i]+'-'+str1[i+1:] # -R-RG
+
+            str1=str1[:idx]+initial[i]+str1[idx+1:] #[:2]=>-RGRG ,GENERATE SUCCESSORS LIKE THIS AT EACH ITERATION.
+            if(str1!=initial):
+                l1.append(str1) # THE SUCCESSORS OF THE GIVEN STATE WILL BE STORED IN THE LIST
+
+            str1=initial
+
+        elif(i<=-1): 
+            continue
+        else:
+            break
+            
+    adj[initial]=l1 #ASSINING KEY AS GIVEN STATE,AND VALUE AS THE LIST OF SUCCESSOR NODE.
+    #EX : {'GR-RG' : ['-RGRG','G-RRG','GRR-G','GRGR-']}
+    return l1
+
+def create_adj_list(parent):
+    
+    for key in parent:
+        for key1 in parent[key]:
+            adj_list[key1]=parent[key][key1] #Creates the dictionary(tree) for the all the successor nodes generated.
+                    
+    
+def bfs():#Breadth FIRST SEARCH
+
+    for node in adj_list.keys(): #adj_list => dictionary of the nodes with parent at each level..
+        visited[node]=False #SETTING THE VISITED NODE AS FALSE INITIALLY FOR ALL NODES.
+        parent1[node]=None 
+        level1[node]=-1
+
+
+    s=initial
+    visited[s]=True
+    level1[s]=0
+    queue.put(s) #PUTTING THE INITIAL STATE INTO THE QUEUE.
+
+    cnt=0
+
+    crt=False
+    while not queue.empty():
+        u=queue.get() #pop out the string
+
+        bfs_traversal_output.append(u)
+
+        for v in adj_list[u]: #visiting the each of the successors of the popped out string.
+            if not visited[v]:
+                cnt+=1
+                visited[v]=True
+                parent1[v]=u 
+                level1[v]=level1[u]+1
+                queue.put(v)
+                print("MOVE",v.rfind('-')+1,"  ",v)
+                if(goalstate(v)): #if the visited node is a goal node then it stops.
+                    print("YES"," AND THE LEVEL IS : ",level1[v]," , NODE EXPANDED : ",cnt," , GOAL STATE : ",v)
+                    crt=True
+                    break
+        if(crt==True):
+              break
+
+
+def dfs(u):# u => inputted node from the user
+    
+    global cnt
+    global crt
+    initially[u]='T'
+    
+    dfs_traversal_output.append(u) 
+    
+    
+    for v in adj_list[u]: #checking the each of the successors of the given node.
+        if initially[v]== False:
+        
+            if(crt!=True):
+                cnt+=1
+                print(" MOVE ",u.rfind('-')+1,u) #moving down recursively upto the last node of the tree.
+                dfs(v)
+                #start checking from the depth.
+                
+    initially[u]=True
+    
+    if(crt!=True):
+        print(" MOVE ",u.rfind('-')+1,u)
+    if(goalstate(u) and crt!=True): #if the node is a goal node then state will be printed.cnt will be set up as True.
+        print(" GOAL STATE : ",u," NODE EXPANDED : ",cnt+1)#iteration stops.
+        crt=True
+        
+
+def movegen(n): #function used by heuristic search methods for taking up the successors of the given node.
+    
+    new_list=list()
+    if n in adj_list.keys(): #ex: if 'GR-RG' is n, then it's succesors will be reuturned as list.
+        new_list=adj_list[n]
+    return new_list
+
+def Append(L1,L2):
+    new_list=list(L1)+list(L2) #for merging two list.
+    return new_list
+
+def Sort(L):
+    L.sort(key=lambda x:x[1]) #sorting according to the heuristic value of each node.
+    return L
+
+def bestfs():#Best First Search
+    OPEN=[[start,1]]
+    closed1=list()
+    global state
+    global closed
+    while(len(OPEN)!=0 and state!=Success): #checking if successor nodes exists and goal node already reached.
+        N=OPEN[0] #getting only the string from the list 
+        
+        del OPEN[0] #deleting the visited string after storing it in N
+    
+        
+        if(goalstate(N[0])==True): #checking whether the given node is a goal node.
+            state=Success
+            closed1=Append(closed1,[N]) 
+            
+        
+        else:
+            closed1=Append(closed1,[N]) #append the path traversed in the list
+            
+            CHILD=movegen(N[0]) #given the string this function returns the successor nodes.
+            
+            for val in OPEN:
+                if val in CHILD:
+                    CHILD.remove(val)
+            for val in closed1:
+                if val in CHILD:
+                    CHILD.remove(val)
+            OPEN=Append(CHILD,OPEN)
+            
+            Sort(OPEN) #return the child nodes in sorted order so that the best heuristic value can be taken
+            
+    closed=closed1
+    return state
+
+def generatestates_heuristic(initial): #same as the generatestates function but appends the heuristic value of the successors node with that list..
+    
+    str1=initial
+    cnt=initial.count('R')
+    
+    
+    l1=[]
+    
+    idx=initial.index('-')
+    
+
+    
+    for i in range(idx-cnt,idx+cnt+1):
+        if(i<len(initial) and i>-1):
+            prim=[]
+            
+            str1=str1[:i]+'-'+str1[i+1:] 
+            
+
+            str1=str1[:idx]+initial[i]+str1[idx+1:] #generating the successors..
+            
+            if(str1!=initial):
+                
+                d=random.randint(1,6) #generate the heuristic value of the nodes from number between 1 and 6...
+                
+                prim.append(str1)
+                prim.append(d)
+                l1.append(prim)
+                
+
+            str1=initial
+
+        elif(i<=-1):
+            continue
+        else:
+            break
+            
+    adj[initial]=l1
+    
+    return l1
+        
+
+def generatestates_hillclimb(initial):#generate states for the hill climbing algo..
+    
+    str1=initial
+    cnt=initial.count('R')
+    
+    
+    l1=[]
+    
+    idx=initial.index('-')
+    
+
+    
+    for i in range(idx-cnt,idx+cnt+1):
+        if(i<len(initial) and i>-1):
+            prim=[]
+            
+            str1=str1[:i]+'-'+str1[i+1:]
+            
+
+            str1=str1[:idx]+initial[i]+str1[idx+1:]
+            
+            if(str1!=initial):
+                
+                
+                d=1 #define heuristic value for every node as 1.
+                
+                prim.append(str1)
+                prim.append(d)
+                l1.append(prim)
+                
+                
+
+            str1=initial
+
+        elif(i<=-1):
+            continue
+        else:
+            break
+    
+    random.shuffle(l1)
+    adj[initial]=l1
+    
+    return l1 
+    
+def Sort1(l): #sort according to the heuristic value and shuffling the successors states...
+    
+    random.shuffle(l)
+    random.shuffle(l)
+    random.shuffle(l)
+    random.shuffle(l)
+    random.shuffle(l)
+
+    
+    l.sort(key=lambda x:x[1]) #sorting according to the successor strings...
+    return l
+
+def heuristic(Node):
+    
+    return Node[1] #return the first string in sorted list
+
+def hill_climbing(start):
+    
+    global closed
+    N=start
+    CHILD=movegen(N) #get the successors list as returned..
+    Sort1(CHILD) #sort according with heuristic value..
+    N=[start,5] #initializing some heuristic value to start value..
+    
+    
+    newNode=CHILD[0]
+    closed1=[N]
+    
+    while heuristic(newNode)<=heuristic(N):#compare the heuristic sum of previous with this current node..
+        N=newNode
+        if(goalstate(N[0])):
+            print("GOAL STATE : ",N[0]) #checking the state as goalstate or not...
+            closed1=Append(closed1,[N])
+
+            break
+        closed1=Append(closed1,[N]) #storing the nodes that is traversed(that is the least pathcost nodes.)
+        CHILD=movegen(N[0])
+        Sort1(CHILD)
+        
+
+
+        newNode=CHILD[0]
+        
+    closed=closed1 
+    
+def generatestates_astar(initial):#function to generate the successive nodes for astar algo...
+    
+    str1=initial
+    cnt=initial.count('R')
+    
+    
+    l1=[]
+    
+    idx=initial.index('-')
+    dash=idx+1
+
+    
+    for i in range(idx-cnt,idx+cnt+1):
+        if(i<len(initial) and i>-1):
+            prim=()
+            
+            str1=str1[:i]+'-'+str1[i+1:]
+            alphabet=i+1  
+
+            str1=str1[:idx]+initial[i]+str1[idx+1:]
+            
+            if(str1!=initial):
+                
+                d=abs(dash-alphabet)  #calculate the distance between the empty tile and the displaced tile
+                pathcost=1
+                prim=(str1,d,pathcost)
+                l1.append(prim)
+                
+
+            str1=initial
+
+        elif(i<=-1):
+            continue
+        else:
+            break
+            
+    adj[initial]=l1
+    
+    return l1
+
+
+def get_neighbors(v):  #get the successors of the list..
+    if v in adj_list:
+        return adj_list[v]
+    else:
+        return None
+    
+def heuristic(v):
+    
+    return 1
+
+def astar(initial):
+    
+    open_set = {initial}
+    closed_set = set()
+    
+    g = {}               #store distance from starting node
+    parents = {} 
+    g[initial] = 0
+    
+    parents[initial] = initial
+    
+    while len(open_set) > 0:
+        n = None
+        #node with lowest f() is found
+        for v in open_set:
+            if n == None or g[v] + heuristic(v) < g[n] + heuristic(n):
+                n = v
+        
+        if goalstate(n)==True or adj_list[n] == None:
+            pass
+        else:
+            #print("nnn",n)
+            for (m, weight,cost) in get_neighbors(n):
+                #nodes 'm' not in first and last set are added to first
+                #n is set its parent
+                if m not in open_set and m not in closed_set:
+                    open_set.add(m)
+                    parents[m] = n
+                    g[m] = g[n] + weight
+                #for each node m,compare its distance from start i.e g(m) to the
+                #from start through n node
+                else:
+                    if g[m] > g[n] + weight:
+                        #update g(m)
+                        g[m] = g[n] + weight
+                        #change parent of m to n
+                        parents[m] = n
+                        #if m in closed set,remove and add to open
+                        if m in closed_set:
+                            closed_set.remove(m)
+                            open_set.add(m)
+        if n == None:
+            print('Path does not exist!')
+            return None
+        
+        # if the current node is the stop_node
+        # then we begin reconstructin the path from it to the start_node
+        if goalstate(n)==True:
+            path = []
+            while parents[n] != n:
+                path.append(n)
+                n = parents[n]
+            path.append(initial)
+            path.reverse()
+            #print('Path found: {}'.format(path))
+            return path
+        # remove n from the open_list, and add it to closed_list
+        # because all of his neighbors were inspected
+        open_set.remove(n)
+        closed_set.add(n)
+    print('Path does not exist!')
+    return path
+
+    
+import os
+
+while(1):
+    
+        print(" ********* PRESS 1 FOR BREADTH FIRST SEARCH *********** ")
+        print(" ********* PRESS 2 FOR DEPTH FIRST SEARCH ************* ")
+        print(" ********* PRESS 3 FOR BEST FIRST SEARCH ************* ")
+        print(" ********* PRESS 4 FOR HILL CLIMBING SEARCH ************* ")
+        print(" ********* PRESS 5 FOR A STAR SEARCH ************* ")
+        print(" ********* PRESS 7 FOR EXIT *************** ")
+        print("")
+        print("")
+        
+        
+        
+        suc=False
+        choice=int(input(" ENTER YOUR CHOICE : ")) 
+        
+        if(choice==7):
+            print(" GOOD BYE ")
+            break
+
+    
+        initial=input(" ENTER THE STATE : ") #getting the inputted string..
+        
+        if(goalstate(initial)==True):
+            print(" GOAL STATE : ",initial) #checking the inputted string itself a goal state...
+            print("")
+            print("")
+            continue
+        cnt2=initial.count('R')
+        adj={}
+        visited={}
+        level1={}
+        parent={}
+        parent1={}
+        bfs_traversal_output=[]
+        adj1={}
+
+
+        level=0
+
+
+
+
+
+        import os
+        if(choice==1 or choice==2): # for Only BFS AND DFS
+            l1=generatestates(initial)
+            
+            
+            if(choice==1): #for only BFS
+                for j in l1:
+                    if(goalstate(j)==True):               
+                                                          
+
+                        print(" MOVE ",j.rfind('-')+1,j) 
+                                                          
+                        print("GOAL STATE : ",j)
+                        print("")
+                        print("")
+                        suc=True
+                        break
+                    print(" MOVE ",j.rfind('-')+1,j)
+                    
+                    
+            if(suc==True):
+                continue
+                    
+
+
+
+            while(level<=16):   #define a tree upto level 16.                                           
+                    for key in adj1:                                 
+                        for j in adj1[key]:     
+                            generatestates(j)                          
+                    level+=1
+                    adj1=adj.copy()
+                    adj={}
+                    parent[level]=adj1
+                    
+
+            
+            
+        if(choice==3 or choice==4 or choice==5): #for only the heuristic search..
+            
+            if(choice==3):
+                l1=generatestates_heuristic(initial)
+            elif(choice==4):
+                l1=generatestates_hillclimb(initial)
+            elif(choice==5):
+                l1=generatestates_astar(initial)
+                
+
+            
+            for key in l1:
+                if(goalstate(key[0])==True):
+                    print("Yes")
+
+            while(level<=16):
+                    for key in adj1:
+                        for j in adj1[key]:
+                            if(choice==3):
+                                 generatestates_heuristic(j[0]) #function calling
+                            elif(choice==4):
+                                generatestates_hillclimb(j[0])
+                            elif(choice==5):
+                                generatestates_astar(j[0])
+
+                    level+=1
+                    adj1=adj.copy()
+                    adj={}
+                    parent[level]=adj1
+
+
+
+            
+            
+            
+
+        
+        adj_list={}
+
+
+
+        create_adj_list(parent)
+        initially={}
+        
+        dfs_traversal_output=[]
+
+        for node in adj_list.keys():
+            initially[node]=False
+
+
+
+        cnt=0
+        crt=False
+        
+        start=initial
+        closed=list()
+        Success=True
+        Failure=False
+        state=Failure
+
+
+        
+        if(choice==1):
+            bfs()
+        if(choice==2):
+            dfs(initial)
+        if(choice==3):
+            res=bestfs()
+            sum1=0
+            for i in closed:
+                print(i[0]," MOVE ",i[0].rfind("-")+1) #printing the state traversed
+                final=i[0]
+                sum1+=i[1]
+
+            print(" GOAL STATE : ",final)
+            print(" TOTAL COST : ",sum1)
+            
+        if(choice==4):
+            res=hill_climbing(initial)
+            sum1=0
+            for i in closed:
+                print(i[0]," MOVE ",i[0].rfind("-")+1) #printing the state traversed
+                final=i[0]
+                sum1+=i[1]
+
+            print(" GOAL STATE : ",final)
+            print(" TOTAL COST : ",sum1)
+            
+        if(choice==5):
+            path=astar(initial)
+
+            for i in path:
+                print(i," ","MOVE ",i.rfind("-")+1)
+            print(" PATH COST : ",len(path))
+
+
+            
+            
+
+
+            
+        print("")
+        print("")
+        print("")
+        
+
+
+        
+
+
+
+                                                                
